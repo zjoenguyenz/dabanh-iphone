@@ -1,0 +1,49 @@
+name: DaBanh
+options:
+  bundleIdPrefix: com.luun.nguyen
+  deploymentTarget:
+    iOS: "17.0"
+settings:
+  base:
+    # Swift 6 language mode (owner order 2026-11-18). This repo is
+    # the Đá Banh iOS app ALONE (split from dabanh-ios the same day),
+    # so the base carries it — no per-target override needed.
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "1.5"
+    CURRENT_PROJECT_VERSION: "6"
+    DEVELOPMENT_TEAM: ""
+targets:
+  DaBanh:
+    type: application
+    platform: iOS
+    sources:
+      - DaBanh/DaBanhApp.swift
+      - DaBanh/Channel.swift
+      - DaBanh/Crests.swift
+      - crests/crests.json
+      - DaBanh/LeagueClassifier.swift
+      - DaBanh/M3UParser.swift
+      - DaBanh/PlaylistStore.swift
+      - DaBanh/ContentView.swift
+      - DaBanh/MatchViews.swift
+      - DaBanh/PlayerView.swift
+      - DaBanh/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luun.nguyen.dabanh
+        INFOPLIST_FILE: Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: Info.plist
+      properties:
+        CFBundleDisplayName: "Đá Banh"
+        CFBundleName: "Đá Banh"
+        CFBundleShortVersionString: "1.17"
+        CFBundleVersion: "18"
+        UILaunchScreen: {}
+        UIBackgroundModes:
+          - audio
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
