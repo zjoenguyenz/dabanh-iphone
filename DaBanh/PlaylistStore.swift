@@ -73,8 +73,9 @@ final class PlaylistStore: ObservableObject {
     /// so crest-reading views re-render with the new badges.
     @Published private(set) var crestsRevision = 0
     @Published private(set) var isLoading = false
-    /// True while a link-validation pass runs (automatic or manual);
-    /// the "Kiểm tra link" button spins on it.
+    /// True while a MANUAL link-validation pass runs (the automatic
+    /// background pass deliberately does not raise it — see
+    /// validateLinks); the "Kiểm tra link" button spins on it.
     @Published private(set) var isValidating = false
     @Published var statusMessage: String?
     @Published var selectedLeague: Int = League.england.rawValue
@@ -414,10 +415,16 @@ final class PlaylistStore: ObservableObject {
     private func validateLinks(reset: Bool) async {
         if validating { return }
         validating = true
-        isValidating = true
+        // Only the manual from-scratch pass (reset) raises the UI
+        // flag: the automatic pass after every refresh is background
+        // hygiene — its results still publish wave by wave, but it
+        // must not spin the sync indicator or lock the "Kiểm tra
+        // link" button for minutes (owner report 2026-11-18: "load
+        // đồng bộ lâu").
+        if reset { isValidating = true }
         defer {
             validating = false
-            isValidating = false
+            if reset { isValidating = false }
         }
         if reset {
             invalidURLs = []
@@ -434,8 +441,8 @@ final class PlaylistStore: ObservableObject {
         // the home screen leads with; the rest follow in a second wave.
         let liveWave = pool.filter { isLiveScope($0, now: now) }
         let restWave = pool.filter { !isLiveScope($0, now: now) }
-        await probeWave(liveWave, now: now)
-        await probeWave(restWave, now: now)
+        await probeWave(liveWave, now: now, timeout: 8)
+        await probeWave(restWave, now: now, timeout: 4)
     }
 
     /// "Should be serving right now": inside the live window, or a
@@ -444,14 +451,14 @@ final class PlaylistStore: ObservableObject {
         ch.kickoff == nil || LeagueClassifier.bucket(of: ch, now: now) == 0
     }
 
-    private func probeWave(_ wave: [Channel], now: Date) async {
+    private func probeWave(_ wave: [Channel], now: Date, timeout: TimeInterval) async {
         if wave.isEmpty { return }
         let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 8
+        config.timeoutIntervalForRequest = timeout
         let session = URLSession(configuration: config)
         var validNow: Set<String> = []
         var invalidNow: Set<String> = []
-        let chunkSize = 20
+        let chunkSize = 40
         var idx = 0
         while idx < wave.count {
             let chunk = Array(wave[idx..<min(idx + chunkSize, wave.count)])
@@ -459,7 +466,7 @@ final class PlaylistStore: ObservableObject {
                 for ch in chunk {
                     let scope = isLiveScope(ch, now: now)
                     group.addTask {
-                        (ch.url, await LinkProbe.isValid(ch, mustBeServing: scope, session: session))
+                        (ch.url, await LinkProbe.isValid(ch, mustBeServing: scope, session: session, timeout: timeout))
                     }
                 }
                 var acc: [(String, Bool)] = []
@@ -489,10 +496,13 @@ final class PlaylistStore: ObservableObject {
 /// a room for a future match may simply not exist yet.
 private enum LinkProbe {
 
-    static func isValid(_ ch: Channel, mustBeServing: Bool, session: URLSession) async -> Bool {
+    static func isValid(_ ch: Channel, mustBeServing: Bool, session: URLSession, timeout: TimeInterval) async -> Bool {
         guard let url = URL(string: ch.url) else { return false }
         var request = URLRequest(url: url)
-        request.timeoutInterval = 6
+        // The wave's timeout must be set HERE: a per-request value
+        // overrides the session configuration's, so leaving the old
+        // fixed 6 s in place would silently defeat the wave split.
+        request.timeoutInterval = timeout
         request.setValue(
             ch.userAgent.isEmpty ? "Mozilla/5.0 (Linux; Android 14; TV)" : ch.userAgent,
             forHTTPHeaderField: "User-Agent")

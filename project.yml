@@ -9,8 +9,8 @@ settings:
     # the Đá Banh iOS app ALONE (split from dabanh-ios the same day),
     # so the base carries it — no per-target override needed.
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "1.5"
-    CURRENT_PROJECT_VERSION: "6"
+    MARKETING_VERSION: "1.18"
+    CURRENT_PROJECT_VERSION: "19"
     DEVELOPMENT_TEAM: ""
 targets:
   DaBanh:
@@ -38,8 +38,8 @@ targets:
       properties:
         CFBundleDisplayName: "Đá Banh"
         CFBundleName: "Đá Banh"
-        CFBundleShortVersionString: "1.17"
-        CFBundleVersion: "18"
+        CFBundleShortVersionString: "1.18"
+        CFBundleVersion: "19"
         UILaunchScreen: {}
         UIBackgroundModes:
           - audio
